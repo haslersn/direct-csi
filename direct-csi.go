@@ -20,7 +20,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
+	"context"
+	
 	"github.com/golang/glog"
 	"github.com/minio/direct-csi/cmd"
 )
@@ -29,13 +30,15 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGSEGV)
 
+	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		s := <-sigs
 		glog.Infof("Exiting on signal %s %#v", s.String(), s)
+		cancel()
 		panic("Signal received. Exiting")
 	}()
 
-	if err := cmd.Execute(); err != nil {
+	if err := cmd.Execute(ctx); err != nil {
 		os.Exit(1)
 	}
 }
